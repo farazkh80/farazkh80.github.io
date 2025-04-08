@@ -233,18 +233,57 @@ throughput for GPT and ResNet benchmarks </li>
       // Show/hide sticky TOC on scroll
       const stickyToc = document.getElementById('sticky-toc');
       const header = document.querySelector('header');
-      const headerHeight = header.offsetHeight;
-      
+      const headerHeight = header.offsetHeight; // Use header bottom as trigger point
+      let scrollTimeout; // To detect scroll stop
+      let isHovering = false; // To track mouse hover state
+
+      // Hover listeners to track hover state and manage expansion
+      stickyToc.addEventListener('mouseenter', function() {
+        isHovering = true;
+        // Expand if visible (overrides auto-collapse timer)
+        if (stickyToc.classList.contains('visible')) {
+          clearTimeout(scrollTimeout); // Clear timer to prevent collapse while hover
+          stickyToc.classList.add('expanded');
+        }
+      });
+
+      stickyToc.addEventListener('mouseleave', function() {
+        isHovering = false;
+        // Start collapse timer immediately if not scrolling (mimics scroll stop)
+        // Or rely on the main scroll listener's timeout to handle collapse.
+        // Let's rely on the main listener for simplicity for now.
+        stickyToc.classList.remove('expanded'); // Collapse immediately on mouse leave
+      });
+
       window.addEventListener('scroll', function() {
         const scrollPosition = window.scrollY;
-        
-        // Show TOC when scrolled past the header
+
+        // Clear any pending auto-collapse timeout because scrolling has resumed
+        clearTimeout(scrollTimeout);
+
+        // Make the menu icon visible when scrolled past the header
         if (scrollPosition > headerHeight) {
-          stickyToc.classList.add('visible');
+          if (!stickyToc.classList.contains('visible')) {
+            stickyToc.classList.add('visible');
+          }
+          // Auto-expand if scrolling and not currently hovering
+          if (!isHovering) {
+             stickyToc.classList.add('expanded');
+          }
         } else {
+          // Hide icon and ensure it's collapsed if scrolled back to top
           stickyToc.classList.remove('visible');
+          stickyToc.classList.remove('expanded'); 
         }
-        
+
+        // Set a timeout to auto-collapse after scrolling stops
+        scrollTimeout = setTimeout(() => {
+          // Only collapse if not currently hovering over the element
+          if (!isHovering) {
+             stickyToc.classList.remove('expanded');
+          }
+        }, 600); // Collapse after 1.5 seconds of inactivity
+
         // Highlight current section in TOC
         const sections = document.querySelectorAll('section h2[id]');
         let currentSectionId = '';
